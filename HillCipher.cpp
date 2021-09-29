@@ -36,9 +36,9 @@ Mat22* mat22_set(int a, int b, int c, int d) {
 }
 
 void mat22_print(Mat22* m) {
-  std::cout  << "|" << std::setw(2) << (char)(m->data[0][0] + 'A') << " " << std::setw(2) << (char)(m->data[0][1] + 'A') << "|";
+  std::cout  << "|" << std::setw(2) << (m->data[0][0]) << " " << std::setw(2) << (m->data[0][1]) << "|";
   std::cout  << "\n";
-  std::cout  << "|" << std::setw(2) << (char)(m->data[1][0] + 'A') << " " << std::setw(2) << (char)(m->data[1][1] + 'A') << "|";
+  std::cout  << "|" << std::setw(2) << (m->data[1][0]) << " " << std::setw(2) << (m->data[1][1]) << "|";
   std::cout  << "\n";
 }
 
@@ -85,23 +85,20 @@ char* hillcipher_encrypt(char* P, Mat22* K) {
   char* C = (char*)malloc(sizeof(char) * p_size + 1);
   C[p_size] = 0;
 
-  // encode P with K
+  // encode C = P*K
   int i = 0;
   int j = 0;
-  for (i = 0; i < p_size;) {
-    Mat22* p_mat = mat22_set(P[i++] - 'a',
-                             (i < p_size) ? P[i++] - 'a' : -1,
-                             (i < p_size) ? P[i++] - 'a' : -1,
-                             (i < p_size) ? P[i++] - 'a' : -1);
+  for (; i < p_size; i += 4) {
+    Mat22* p_mat = mat22_set(P[i + 0] - 'a',
+                             P[i + 1] - 'a',
+                             P[i + 2] - 'a',
+                             P[i + 3] - 'a');
     Mat22* c_mat = mat22_mul(p_mat, K);
-    std::cout << "c_mat on round " << i << " ::\n";
-    mat22_print(c_mat);
-    std::cout << "\n";
 
-    if (p_mat->data[0][0] >= 0) C[j++] = c_mat->data[0][0] + 'A';
-    if (p_mat->data[0][1] >= 0) C[j++] = c_mat->data[0][1] + 'A';
-    if (p_mat->data[1][0] >= 0) C[j++] = c_mat->data[1][0] + 'A';
-    if (p_mat->data[1][1] >= 0) C[j++] = c_mat->data[1][1] + 'A';
+    if (i     < p_size) C[j++] = c_mat->data[0][0] + 'A';
+    if (i + 1 < p_size) C[j++] = c_mat->data[0][1] + 'A';
+    if (i + 2 < p_size) C[j++] = c_mat->data[1][0] + 'A';
+    if (i + 3 < p_size) C[j++] = c_mat->data[1][1] + 'A';
 
     free(p_mat);
     free(c_mat);
@@ -117,19 +114,21 @@ char* hillcipher_decrypt(char* C, Mat22* K) {
 
   // get inv_K
   Mat22* inv_K = mat22_inv(K);
+
+  // decode P = C*K^(-1)
   int i = 0;
   int j = 0;
-  for (; i < c_size;) {
-    Mat22* c_mat = mat22_set(C[i++] - 'A',
-                             (i < c_size) ? C[i++] - 'A' : -1,
-                             (i < c_size) ? C[i++] - 'A' : -1,
-                             (i < c_size) ? C[i++] - 'A' : -1);
+  for (; i < c_size; i += 4) {
+    Mat22* c_mat = mat22_set(C[i + 0] - 'A',
+                             C[i + 1] - 'A',
+                             C[i + 2] - 'A',
+                             C[i + 3] - 'A');
     Mat22* p_mat = mat22_mul(c_mat, inv_K);
 
-    if (c_mat->data[0][0] >= 0) P[j++] = c_mat->data[0][0] + 'a';
-    if (c_mat->data[0][1] >= 0) P[j++] = c_mat->data[0][1] + 'a';
-    if (c_mat->data[1][0] >= 0) P[j++] = c_mat->data[1][0] + 'a';
-    if (c_mat->data[1][1] >= 0) P[j++] = c_mat->data[1][1] + 'a';
+    if (i     < c_size) P[j++] = c_mat->data[0][0] + 'a';
+    if (i + 1 < c_size) P[j++] = c_mat->data[0][1] + 'a';
+    if (i + 2 < c_size) P[j++] = c_mat->data[1][0] + 'a';
+    if (i + 3 < c_size) P[j++] = c_mat->data[1][1] + 'a';
 
     free(c_mat);
     free(p_mat);
@@ -177,6 +176,8 @@ int main() {
 
     char* C = hillcipher_encrypt(P, K);
     std::cout << "Ciphertext = " << C << "\n\n";
+
+    std::cout << "decryption of " << C << " = " << hillcipher_decrypt(C, K) << "\n";
 
     free(P);
     free(K);
