@@ -145,6 +145,7 @@ char* hillcipher_decrypt(char* C, Mat22* inv_K) {
 
 int main() {
 
+  // #2 (a)
   {
     Mat22* K = mat22_set(9, 4, 5, 7);
     Mat22* inv_K = mat22_inv(K);
@@ -168,6 +169,7 @@ int main() {
     free(identity);
   }
 
+  // #2 (b)
   std::cout << "------------------------\n\n";
 
   {
@@ -190,6 +192,7 @@ int main() {
     free(C);
   }
 
+  // #2 (c)
   std::cout << "------------------------\n\n";
 
   {
@@ -214,10 +217,8 @@ int main() {
 
   std::cout << "------------------------\n\n";
 
+  // #3
   {
-    char* P = "howareyoutoday";
-    char* C = "ZWSENIUSPLJVEU";
-
     Mat22* K = NULL;
 
     Mat22* p_mat = mat22_set('h' - 'a', 'o' - 'a', 'w' - 'a', 'a' - 'a');
