@@ -3,16 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-
-int mod(int x, int y) {
-  if (x < 0) {
-    while (x < 0) x += y;
-    return x;
-  } else {
-    return x % y;
-  }
-}
-
+// expand string by adding 'x''s to the end if needed
 char* expand_string(char* str, int desired_size) {
   int str_size = (int)strlen(str);
   char* s = (char*)malloc(sizeof(char) * desired_size + 1);
@@ -25,6 +16,26 @@ char* expand_string(char* str, int desired_size) {
   return s;
 }
 
+/*
+  Row Transposition Encryption:
+
+  encrypt by building a table of (k_size x (c_size / k_size))
+  and rebuild a new ciphertext string by reading the table
+  by column.
+
+  meetmeaftertogaparty
+
+  key = {3, 5, 1, 6, 2, 4}
+  TBL:
+  m e e t m e
+  a f t e r t
+  o g a p a r
+  t y x y z w
+  -----------
+  3 5 1 6 2 4
+
+  etaxmrazmaotetrwefgytepy
+*/
 char* row_transposition_encrypt(char* _P, int* K, int k_size) {
   size_t p_size = strlen(_P);
   size_t pad    = k_size - (p_size % k_size);
@@ -53,6 +64,26 @@ char* row_transposition_encrypt(char* _P, int* K, int k_size) {
   return C;
 }
 
+/*
+  Row Transposition Decrypt:
+
+  decrypt by building a table of (k_size x (c_size / k_size))
+  by reading in the table by each (c_size / k_size) sized chunk
+  ordered by the key, which is then read into a new plaintext
+  string by reading the table left-right top-bottom.
+
+  key = {3, 5, 1, 6, 2, 4}
+
+  #3   #5   #1   #6   #2   #4
+  amrt moep eaeg rtfy tzty xawe
+
+  e t a x m r
+  a z m a o t
+  e t r w e f
+  g y t e p y
+
+  etaxmrazmaotetrwefgytepy
+*/
 char* row_transposition_decrypt(char* C, int* K, int k_size) {
   size_t c_size = strlen(C);
   size_t p_size = c_size;
