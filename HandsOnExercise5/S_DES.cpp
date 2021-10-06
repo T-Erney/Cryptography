@@ -158,11 +158,10 @@ int main() {
     std::cout << "\n";
   }
 
-  // test
   {
     std::cout << "#3\n\n";
     uint16_t K = 0x0099;
-    uint16_t C = 0x0867;
+    uint16_t C = 0x0837;
 
     std::cout << "Ciphertext: ";
     printb12(C);
