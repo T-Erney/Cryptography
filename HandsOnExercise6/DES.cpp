@@ -1,12 +1,13 @@
 #include <iostream>
+#include <iomanip>
 #include <bitset>
 #include <stdlib.h>
 #include <stdint.h>
 
 template <uint64_t I>
-void printb(uint64_t b) {
+std::string printb(uint64_t b) {
   std::bitset<I> x(b);
-  std::cout << x;
+  return x.to_string();
 }
 
 // S-Boxes 1-8
@@ -137,7 +138,7 @@ uint64_t E(uint32_t x) {
 
   for (int i = 0; i < 48; i += 1) {
     e <<= 1;
-    e |= 0x01 & (x >> 31 - ep[i]);
+    e |= 0x01 & (x >> (31 - ep[i]));
   }
 
   return e;
@@ -147,20 +148,35 @@ uint64_t F(uint32_t R, uint64_t K) {
   uint64_t eR = E(R);
   uint64_t eR_xor_K = eR ^ K;
 
+  std::cout << "\t\tE( " << std::hex << R << " ) :: " << eR << "\n";
+  std::cout << "\t\t" << eR << " ^ " << K << " :: " << eR_xor_K << "\n"; 
+
+  const uint8_t RMASK = 0x21;
+  const uint8_t CMASK = 0x1e;
+
   uint32_t sbox_res = 0;
   for (uint8_t i = 0; i < 8; i += 1) {
-    uint8_t e = *(uint8_t*)(&eR_xor_K + (i * 6));
     // get bit 0 and 5 from each block of eR_xor_K
-    uint8_t row = ( (0x01 & ((e) >> 5)) << 1 ) | ( 0x01 & (e) );
-    uint8_t col = (0x01 & (e >> 4) << 3) |
-                  (0x01 & (e >> 3) << 2) |
-                  (0x01 & (e >> 2) << 1) |
-                  (0x01 & (e >> 1));
+    uint8_t block = (uint8_t) ((eR_xor_K >> 42 - (i * 6)));
+    uint8_t row = (uint8_t) (RMASK & block);
+    row = ((0x20 & row) >> 4) | (0x01 & row);
+    uint8_t col = (uint8_t) (CMASK & block);
+    col = col >> 1;
+
     sbox_res <<= 4;
-    sbox_res |= sboxes[i][row * 16 + col];
+    sbox_res |= 0xf & sboxes[i][row * 16 + col];
   }
 
-  return sbox_res;
+  // permute with p table
+  uint32_t res = 0;
+  for (int i = 0; i < 32; i += 1) {
+    res <<= 1;
+    res |= 0x01 & (sbox_res >> (32 - p[i]));
+  }
+
+  std::cout << "\t\tF( " << R << ", " << K << " ) :: " << res << std::dec << "\n";
+
+  return res;
 }
 
 uint64_t* key_gen(uint64_t K) {
@@ -172,42 +188,49 @@ uint64_t* key_gen(uint64_t K) {
 
   std::cout << "Generating keys for 16 rounds...\n";
 
+  uint64_t sK = 0;
+  uint32_t C = 0, D = 0;
+  for (uint8_t i = 0; i < 56; i += 1) {
+    sK <<= 1;
+    sK |= 0x01 & (K >> 64 - pc1[i]);
+  }
+
+  C = (uint32_t)(0x000000000fffffff & (sK >> 28));
+  D = (uint32_t)(0x000000000fffffff & sK);
+
   // generate keys
   for (uint8_t round = 0; round < 16; round += 1) {
     // permute key with PC1
+    std::cout << "|- keygen round " << std::dec << round + 1 << "\n";
     {
-      uint64_t subK = 0;
-      uint32_t C = 0, D = 0;
-      for (uint8_t i = 0; i < 56; i += 1) {
-        subK <<= 1;
-        subK |= 0x01 & (K >> 64 - pc1[i]);
-      }
-
-      C = (uint32_t)(0x000000000fffffff & (subK >> 28));
-      D = (uint32_t)(0x000000000fffffff & subK);
-
       uint8_t shift = K_shift_schedule[round];
-      C = ( (C << shift) | (C >> 26 - shift) );
-      D = ( (D << shift) | (D >> 26 - shift) );
+      C = 0x0fffffff & ( (C << shift) | (C >> 28 - shift) );
+      D = 0x0fffffff & ( (D << shift) | (D >> 28 - shift) );
 
-      subK = 0;
-      subK = (uint64_t)(C << 28) | (uint64_t)(D);
+      uint64_t subK = 0;
+      subK = ((uint64_t)C << 28) | (uint64_t)(D);
 
+      // PC2
       for (uint64_t i = 0; i < 48; i += 1) {
         keys[round] <<= 1;
         keys[round] |= 0x01 & (subK >> (56 - pc2[i]));
       }
+
+      std::cout << std::hex <<
+                   "   |- C    :: " << C << "\n" <<
+                   "   |- D    :: " << D << "\n" <<
+                   "   |- subK :: " << subK << "\n";
     }
 
-    std::cout << "|- keygen round " << round + 1 << " :: " << keys[round] << "\n";
+    std::cout <<   "   |- key  :: " << std::hex << keys[round] << "\n";
   }
 
-  std::cout << "\n";
+  std::cout << std::dec << "\n";
   return keys;
 }
 
 uint64_t des_encrypt(uint64_t P, uint64_t* Ks) {
-  uint64_t Cipher = 0;
+  uint64_t cipher = 0;
 
   // initial permutation
   uint64_t permute_P = 0;
@@ -217,27 +240,38 @@ uint64_t des_encrypt(uint64_t P, uint64_t* Ks) {
   }
 
   uint32_t L = (uint32_t)(permute_P >> 32);
-  uint32_t R = (uint32_t)(permute_P);
+  uint32_t R = (uint32_t)(0x00000000ffffffff & permute_P);
+
+  std::cout << "Initial L and R values...\n";
+  std::cout << "L0 :: " << std::hex << L << "\n";
+  std::cout << "R0 :: " << std::hex << R << std::dec << "\n\n";
 
   for (uint32_t i = 0; i < 16; i += 1) {
+    std::cout << "Round " << i + 1 << "\n";
+
     uint32_t L_ = R;
     uint32_t R_ = L ^ F(R, Ks[i]);
 
-    std::cout << "Round " << i << "\n";
-    std::cout << "\tL" << i << " :: " << L_ << "\n";
-    std::cout << "\tR" << i << " :: " << R_ << "\n";
+    std::cout << "\tL" << i + 1 << " :: " << std::hex << L_ << std::dec <<  "\n";
+    std::cout << "\tR" << i + 1 << " :: " << std::hex << R_ << std::dec <<  "\n";
 
     L = L_;
     R = R_;
   }
+  std::cout << "\n";
 
   uint32_t tmp = L;
   L = R;
   R = tmp;
 
-  Cipher = (uint64_t)(L << 32) | (uint64_t)R;
+  cipher = ((uint64_t)L << 32) | (uint64_t)R;
+  uint64_t fp_cipher = 0;
+  for (uint8_t i = 0; i < 64; i += 1) {
+    fp_cipher <<= 1;
+    fp_cipher |= 0x01 & (cipher >> (64 - fp[i]));
+  }
 
-  return Cipher;
+  return fp_cipher;
 }
 
 int main() {
@@ -245,20 +279,14 @@ int main() {
   uint64_t P = 0x0123456789abcdef;
   uint64_t K = 0x0123456789abcdef;
 
-  std::cout << "Starting Plaintext :: ";
-  printb<64>(P);
-  std::cout << "\n" <<
-    "Starting Key :: ";
-  printb<64>(K);
-  std::cout << "\n";
+  std::cout << "Starting Plaintext :: " << std::hex << P << "\n" <<
+    "Starting Key       :: " << std::hex << K << "\n";
 
   uint64_t* Ks = key_gen(K);
 
   uint64_t C = des_encrypt(P, Ks);
 
-  std::cout << "Ending Ciphertext :: ";
-  printb<64>(C);
-  std::cout << "\n";
-  
+  std::cout << "Ending Ciphertext  :: " << std::hex << C << "\n";
+
   return 0;
 }
