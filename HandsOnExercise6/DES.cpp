@@ -276,8 +276,8 @@ uint64_t des_encrypt(uint64_t P, uint64_t* Ks) {
 
 int main() {
 
-  uint64_t P = 0x123456abcd132536;
-  uint64_t K = 0xaabb09182736ccdd;
+  uint64_t P = 0x0123456789abcdef;
+  uint64_t K = 0x0123456789abcdef;
 
   std::cout << "Starting Plaintext :: " << std::hex << P << "\n" <<
     "Starting Key       :: " << std::hex << K << "\n";
