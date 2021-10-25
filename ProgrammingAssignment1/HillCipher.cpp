@@ -151,9 +151,6 @@ int main() {
     char P[] = "meetmeattheusualplaceattenratherthaneightoclock";
     char* C  = hillcipher_encrypt(P, K);
 
-    std::cout << "Key :: \n";
-    mat22_print(K);
-    std::cout << "\n";
     std::cout << "Plaintext  :: " << P << "\n";
     std::cout << "Ciphertext :: " << C << "\n\n";
 
@@ -168,18 +165,8 @@ int main() {
     char* C  = (char*)malloc(sizeof(char) * 6); // this needs to be heap allocated so we can manipulate it in decrypt
     memcpy(C, "YIFZMA", 6);
     
-    // inv_K
     Mat22* inv_K = mat22_inv(K);
-    std::cout << "inv_K :: \n";
-    mat22_print(inv_K);
-    std::cout << "\n";
-
-    // check the inv_K by finding identity
     Mat22* identity = mat22_mul(K, inv_K);
-    std::cout << "Identity :: \n";
-    mat22_print(identity);
-    std::cout << "\n";
-
     char* P = hillcipher_decrypt(C, inv_K);
 
     std::cout << "Ciphertext :: " << C << "\n";
@@ -229,10 +216,6 @@ int main() {
     std::cout << "K :: \n";
     mat22_print(K);
     std::cout << "\n";
-
-    std::cout << "K is the matrix |" << std::setw(2) << (char)(K->data[0][0] + 'a') << " " << std::setw(2) << (char)(K->data[0][1] + 'a') << "|" << "\n";
-    std::cout << "                |" << std::setw(2) << (char)(K->data[1][0] + 'a') << " " << std::setw(2) << (char)(K->data[1][1] + 'a') << "|" << "\n"; 
   }
-
   return 0;
 }

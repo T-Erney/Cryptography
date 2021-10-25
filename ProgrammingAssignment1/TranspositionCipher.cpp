@@ -10,7 +10,7 @@ char* expand_string(char* str, int desired_size) {
   s[desired_size] = 0;
 
   for (int i = 0; i < desired_size; i += 1) {
-    s[i] = (i < str_size) ? str[i] : 'x';
+    s[i] = (i < str_size) ? str[i] : /* (('x' - 'a' + i) % 26) + 'a' + 1 */ 'x';
   }
 
   return s;
@@ -37,9 +37,9 @@ char* expand_string(char* str, int desired_size) {
   etaxmrazmaotetrwefgytepy
 */
 char* row_transposition_encrypt(char* _P, int* K, int k_size) {
-  size_t p_size = strlen(_P);
-  size_t pad    = k_size - (p_size % k_size);
-  size_t c_size = p_size + pad;
+  int p_size = strlen(_P);
+  int pad    = ((p_size % k_size) != 0) ? k_size - (p_size % k_size) : 0;
+  int c_size = p_size + pad;
 
   char* P = expand_string(_P, c_size);
   char* C = (char*)malloc(c_size + 1);
@@ -56,8 +56,18 @@ char* row_transposition_encrypt(char* _P, int* K, int k_size) {
 
   int k = 0;
   for (int i = 0; i < k_size; i += 1) {
+
+    // get keys in order of 0 to k_size - 1
+    int c = 0;
+    for (int j = 0; j < k_size; j += 1) {
+      if (K[j] == i + 1) {
+        c = j;
+        break;
+      }
+    }
+
     for (int j = 0; j < (c_size / k_size); j += 1) {
-      C[k++] = TBL[j][K[i] - 1];
+      C[k++] = TBL[j][c];
     }
   }
 
@@ -85,8 +95,8 @@ char* row_transposition_encrypt(char* _P, int* K, int k_size) {
   etaxmrazmaotetrwefgytepy
 */
 char* row_transposition_decrypt(char* C, int* K, int k_size) {
-  size_t c_size = strlen(C);
-  size_t p_size = c_size;
+  int c_size = strlen(C);
+  int p_size = c_size;
 
   char* P = (char*)malloc(p_size + 1);
   P[p_size] = 0;
@@ -103,8 +113,11 @@ char* row_transposition_decrypt(char* C, int* K, int k_size) {
     char* c_ptr = C + (i * (c_size / k_size));
     for (int j = 0; j < (c_size / k_size); j += 1) {
       TBL[j][K[i] - 1] = c_ptr[j];
+      std::cout << TBL[j][K[i] - 1] << " ";
     }
+    std::cout << "\n";
   }
+  std::cout << "\n";
 
   int k = 0;
   for (int i = 0; i < (c_size / k_size); i += 1) {
@@ -120,16 +133,20 @@ int main() {
 
   {
     int key[] = {4, 3, 1, 2, 5, 6, 7};
-    char P[] = "attckpostponeduntiltwoam";
-    char* C  = row_transposition_encrypt(row_transposition_encrypt(P, key, 7), key, 7);
+    char P[] = "attackpostponeduntiltwoam";
+    char* C1 = row_transposition_encrypt(P, key, 7);
+    char* C  = row_transposition_encrypt(C1, key, 7);
 
     std::cout << "Key        :: ";
-    for (int i = 0; i < (sizeof(key) / sizeof(key[0])); i += 1) {
+    for (int i = 0; i < 7; i += 1) {
       std::cout << key[i] << " ";
     }
     std::cout << "\n";
     std::cout << "Plaintext  :: " << P << "\n";
     std::cout << "Ciphertext :: " << C << "\n\n";
+
+    char* _P = row_transposition_decrypt(row_transposition_decrypt(C, key, 7), key, 7);
+    std::cout << "PLAINTEXT  :: " << _P << "\n\n";
   }
 
   {
@@ -138,7 +155,7 @@ int main() {
     char* P  = row_transposition_decrypt(row_transposition_decrypt(C, key, 6), key, 6);
 
     std::cout << "Key        :: ";
-    for (int i = 0; i < (sizeof(key) / sizeof(key[0])); i += 1) {
+    for (int i = 0; i < 6; i += 1) {
       std::cout << key[i] << " ";
     }
     std::cout << "\n";

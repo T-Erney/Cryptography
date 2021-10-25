@@ -8,12 +8,6 @@ struct CipherFreqTable {
   float freq[26];
 };
 
-const char  freq_char_table[] = {
-  'e', 't', 'a', 'o', 'i', 'n', 's', 'h', 'r',
-  'd', 'l', 'c', 'u', 'm', 'w', 'f', 'g', 'y',
-  'p', 'b', 'v', 'k', 'j', 'x', 'q', 'z'
-};
-
 int mod(int x, int y) {
   if (x < 0) {
     while (x < 0) x += y;
@@ -72,13 +66,13 @@ int main() {
 
   letter += 32;
 
-  std::cout << "Most Frequent Letter = " << letter << "\n";
+  std::cout << "Most Frequent Letter :: " << letter << "\n";
   k = letter - 'e';
 
   char* plaintext = shift_decrypt(ciphertext, k);
 
-  std::cout << "Key == " << k << "\n";
-  std::cout << "Plaintext == " << shift_decrypt(ciphertext, k) << "\n";
+  std::cout << "Key                  :: " << k << "\n";
+  std::cout << "Plaintext            :: " << plaintext << "\n";
 
   return 0;
 }
