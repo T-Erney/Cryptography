@@ -213,7 +213,7 @@ Mat44* add_round_key(Mat44* m, Mat44* k) {
 }
 
 uint32_t* round_key_schedule(Mat44* k) {
-  uint32_t* w = (uint32_t*)malloc(sizeof(uint8_t) * 44);
+  uint32_t* w = (uint32_t*)malloc(sizeof(uint32_t) * 44);
 
   for (uint8_t i = 0; i < 4; i += 1) {
     w[i] = (k->data[i][0] << 24) |
@@ -223,7 +223,7 @@ uint32_t* round_key_schedule(Mat44* k) {
   }
 
   for (uint8_t i = 4; i < 44; i += 1) {
-    uint32_t tmp = *(w + i - 1);
+    uint32_t tmp = w[i - 1];
     if (i % 4 == 0) {
       // rotate
       uint32_t rb =
@@ -234,10 +234,10 @@ uint32_t* round_key_schedule(Mat44* k) {
 
       // sub bytes
       uint32_t sb =
-        sbox[(0x0f & (rb >> 28)) + (0x0f & (rb >> 24))] |
-        sbox[(0x0f & (rb >> 20)) + (0x0f & (rb >> 16))] |
-        sbox[(0x0f & (rb >> 12)) + (0x0f & (rb >>  8))] |
-        sbox[(0x0f & (rb >>  4)) + (0x0f & rb)];
+        sbox[(0x0f & (rb >> 28)) * 16 + (0x0f & (rb >> 24))] |
+        sbox[(0x0f & (rb >> 20)) * 16 + (0x0f & (rb >> 16))] |
+        sbox[(0x0f & (rb >> 12)) * 16 + (0x0f & (rb >>  8))] |
+        sbox[(0x0f & (rb >>  4)) * 16 + (0x0f & rb)];
 
       // xor with rcon
       uint32_t rconst = *((uint32_t*)rcon + (i / 4));
@@ -258,11 +258,11 @@ int main() {
   std::cout << "Original State :: \n";
   mat44_print(p_mat);
 
+  uint32_t* keys = round_key_schedule(k_mat);
+
   Mat44* ark0 = add_round_key(p_mat, k_mat);
   std::cout << "State after initial AddRoundKey :: \n";
   mat44_print(ark0);
-
-  uint32_t* keys = round_key_schedule(k_mat);
 
   Mat44* sb = sub_byte(ark0);
   std::cout << "State after SubByte :: \n";
@@ -278,10 +278,10 @@ int main() {
 
   // get next round key
   Mat44* new_k_mat = mat44_set(
-    {(uint8_t)(0xff000000 & keys[4]) >> 24, (uint8_t)(0x00ff0000 & keys[4]) >> 16, (uint8_t)(0x0000ff00 & keys[4]) >> 8, (uint8_t)(0xff & keys[4])},
-    {(uint8_t)(0xff000000 & keys[5]) >> 24, (uint8_t)(0x00ff0000 & keys[5]) >> 16, (uint8_t)(0x0000ff00 & keys[5]) >> 8, (uint8_t)(0xff & keys[5])},
-    {(uint8_t)(0xff000000 & keys[6]) >> 24, (uint8_t)(0x00ff0000 & keys[6]) >> 16, (uint8_t)(0x0000ff00 & keys[6]) >> 8, (uint8_t)(0xff & keys[6])},
-    {(uint8_t)(0xff000000 & keys[7]) >> 24, (uint8_t)(0x00ff0000 & keys[7]) >> 16, (uint8_t)(0x0000ff00 & keys[7]) >> 8, (uint8_t)(0xff & keys[7])}
+    {(uint8_t)(0xff & (keys[4] >> 24)), (uint8_t)(0xff & (keys[4] >> 16)), (uint8_t)(0xff & (keys[4] >> 8)), (uint8_t)(0xff & keys[4])},
+    {(uint8_t)(0xff & (keys[5] >> 24)), (uint8_t)(0xff & (keys[5] >> 16)), (uint8_t)(0xff & (keys[5] >> 8)), (uint8_t)(0xff & keys[5])},
+    {(uint8_t)(0xff & (keys[6] >> 24)), (uint8_t)(0xff & (keys[6] >> 16)), (uint8_t)(0xff & (keys[6] >> 8)), (uint8_t)(0xff & keys[6])},
+    {(uint8_t)(0xff & (keys[7] >> 24)), (uint8_t)(0xff & (keys[7] >> 16)), (uint8_t)(0xff & (keys[7] >> 8)), (uint8_t)(0xff & keys[7])}
   );
   mat44_print(new_k_mat);
 
