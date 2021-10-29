@@ -113,11 +113,11 @@ char* row_transposition_decrypt(char* C, int* K, int k_size) {
     char* c_ptr = C + (i * (c_size / k_size));
     for (int j = 0; j < (c_size / k_size); j += 1) {
       TBL[j][K[i] - 1] = c_ptr[j];
-      std::cout << TBL[j][K[i] - 1] << " ";
+      //std::cout << TBL[j][K[i] - 1] << " ";
     }
-    std::cout << "\n";
+    //std::cout << "\n";
   }
-  std::cout << "\n";
+  //std::cout << "\n";
 
   int k = 0;
   for (int i = 0; i < (c_size / k_size); i += 1) {
@@ -145,8 +145,6 @@ int main() {
     std::cout << "Plaintext  :: " << P << "\n";
     std::cout << "Ciphertext :: " << C << "\n\n";
 
-    char* _P = row_transposition_decrypt(row_transposition_decrypt(C, key, 7), key, 7);
-    std::cout << "PLAINTEXT  :: " << _P << "\n\n";
   }
 
   {
