@@ -16,16 +16,26 @@ char* rc4(const char* P, char* K, size_t s) {
   uint8_t* S = (uint8_t*)malloc(sizeof(uint8_t) * s),
          * T = (uint8_t*)malloc(sizeof(uint8_t) * s);
 
+  std::cout << "Generating Stream...\n";
+
   size_t i, j;
   for (i = 0; i < s; i += 1) {
     S[i] = i;
     T[i] = K[i % strlen(K)];
+
+    std::cout << "\tS[" << i << "] :: " << (int)S[i] << "; T[" << i << "] = K[" << i << " % " << strlen(K) << "] :: " << (int)T[i] << "\n";
   }
 
   for (i = 0; i < s; i += 1) {
     j = (j + S[i] + T[i]) % s;
     swap(S[i], S[j]);
   }
+
+  std::cout << "Stream :: [ ";
+  for (int i = 0; i < (int)s; i += 1) {
+    std::cout << (int)S[i] << " ";
+  }
+  std::cout << "]\n\n";
 
   i = j = 0;
   for (int x = 0; x < (int)strlen(P); x += 1) {
@@ -43,12 +53,16 @@ char* rc4(const char* P, char* K, size_t s) {
 
 int main() {
   char K[2]  = {1, 2};
-  const char* P = "Hi";
-  char* C = rc4(P, K, 4);
+  std::cout << "K  :: " << (int)K[0] << ", " << (int)K[1] << "\n";
 
+  const char* P = "Hi";
   std::cout << "P  :: " << P << "\n";
+
+  char* C = rc4(P, K, 4);
   std::cout << "C  :: " << C << "\n";
-  std::cout << "P` :: " << rc4(C, K, 4) << "\n";
+
+  char* P_ = rc4(C, K, 4);
+  std::cout << "P` :: " << P_ << "\n";
 
   return 0;
 }
