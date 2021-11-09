@@ -17,7 +17,7 @@ uint8_t gf_mul(uint8_t a, uint8_t b) {
     else a <<= 1;
   }
 
-  return res % 256;
+  return res;
 }
 
 uint64_t sbox[] = {
@@ -211,7 +211,7 @@ Mat44* add_round_key(Mat44* m, Mat44* k) {
   );
   return n;
 }
-
+/*
 uint32_t* round_key_schedule(Mat44* k) {
   uint32_t* w = (uint32_t*)malloc(sizeof(uint32_t) * 44);
 
@@ -249,6 +249,67 @@ uint32_t* round_key_schedule(Mat44* k) {
 
   return w;
 }
+*/
+
+Mat44* get_round_key(Mat44* key) {
+  Mat44* new_k = NULL;
+  uint8_t new_data[4][4] = {{0}, {0}, {0}, {0}};
+
+  for (int k = 0; k < 4; k += 1) {
+    uint8_t data1[4] = {0, 0, 0, 0};
+    uint8_t data2[4] = {0, 0, 0, 0};
+
+
+
+    if ((k + 4) % 4 == 0) {
+      for (int i = 0; i < 4; i += 1) {
+        data1[i] = key->data[i][0];
+      }
+      for (int i = 0; i < 4; i += 1) {
+        data2[i] = key->data[i][3];
+      }
+
+      // rotate
+      uint8_t tmp = data2[0];
+      data2[0] = data2[1];
+      data2[1] = data2[2];
+      data2[2] = data2[3];
+      data2[3] = tmp;
+
+      // s-box
+      for (int i = 0; i < 4; i += 1) {
+        data2[i] = sbox[(data2[i] >> 4) * 16 + (0x0f & data2[i])];
+      }
+
+      uint8_t x = 0x01;
+      data2[0] = data2[0] ^ x;
+
+      new_data[0][0] = data1[0] ^ data2[0];
+      new_data[1][0] = data1[1] ^ data2[1];
+      new_data[2][0] = data1[2] ^ data2[2];
+      new_data[3][0] = data1[3] ^ data2[3];
+    } else {
+      for (int i = 0; i < 4; i += 1) {
+        data1[i] = key->data[i][k];
+        data2[i] = new_data[i][k - 1];
+      }
+
+      new_data[0][k] = data1[0] ^ data2[0];
+      new_data[1][k] = data1[1] ^ data2[1];
+      new_data[2][k] = data1[2] ^ data2[2];
+      new_data[3][k] = data1[3] ^ data2[3];
+    }
+  }
+
+  new_k = mat44_set(
+    new_data[0],
+    new_data[1],
+    new_data[2],
+    new_data[3]
+  );
+
+  return new_k;
+}
 
 int main() {
 
@@ -258,7 +319,7 @@ int main() {
   std::cout << "Original State :: \n";
   mat44_print(p_mat);
 
-  uint32_t* keys = round_key_schedule(k_mat);
+  //uint32_t* keys = round_key_schedule(k_mat);
 
   Mat44* ark0 = add_round_key(p_mat, k_mat);
   std::cout << "State after initial AddRoundKey :: \n";
@@ -277,17 +338,24 @@ int main() {
   mat44_print(mc);
 
   // get next round key
+  /*
   Mat44* new_k_mat = mat44_set(
     {(uint8_t)(0xff & (keys[4] >> 24)), (uint8_t)(0xff & (keys[4] >> 16)), (uint8_t)(0xff & (keys[4] >> 8)), (uint8_t)(0xff & keys[4])},
     {(uint8_t)(0xff & (keys[5] >> 24)), (uint8_t)(0xff & (keys[5] >> 16)), (uint8_t)(0xff & (keys[5] >> 8)), (uint8_t)(0xff & keys[5])},
     {(uint8_t)(0xff & (keys[6] >> 24)), (uint8_t)(0xff & (keys[6] >> 16)), (uint8_t)(0xff & (keys[6] >> 8)), (uint8_t)(0xff & keys[6])},
     {(uint8_t)(0xff & (keys[7] >> 24)), (uint8_t)(0xff & (keys[7] >> 16)), (uint8_t)(0xff & (keys[7] >> 8)), (uint8_t)(0xff & keys[7])}
   );
+  */
+  Mat44* new_k_mat = get_round_key(k_mat);
+  std::cout << "K[4], K[5], K[6], K[7] :: \n";
   mat44_print(new_k_mat);
 
-  Mat44* ark1 = add_round_key(mc, k_mat);
+  Mat44* ark1 = add_round_key(mc, new_k_mat);
   std::cout << "State after AddRoundKey :: \n";
   mat44_print(ark1);
+
+  std::cout << "Key :: \n";
+  mat44_print(k_mat);
 
   return 0;
 }
