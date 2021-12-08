@@ -74,9 +74,9 @@ int eegcd(int a, int b, int* x, int* y) {
   return gcd;
 }
 
-int power(int b, int e) {
+int power(int b, int e, int m) {
   int p = b;
-  for (int i = 1; i < e; i += 1) p *= b;
+  for (int i = 1; i < e; i += 1) p = mod(p * b, m);
   return p;
 }
 
@@ -128,10 +128,8 @@ int32_t main() {
   std::cout << "e :: " << e << "\n";
   std::cout << "d :: " << d << "\n";
 
-  int C = (int)pow((float)100, (float)e) % n;
-  int P = (int)power((float)C, (float)d) % n;
-
-  std::cout << "power(100, e) :: " << (int)pow((float)100, (float)e) << "\n";
+  int C = mod(power(100, e, n), n);
+  int P = mod(power(C, d, n), n);
 
   std::cout << "C :: " << C << "\n";
   std::cout << "m :: " << P << "\n";
