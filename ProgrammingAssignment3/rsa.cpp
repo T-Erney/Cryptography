@@ -9,12 +9,21 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <cmath>
-#include <ctime>
+#include <chrono>
+#include <random>
 
 #define MAX_PRIME 1000
 #define int int64_t
 static int array_size = 0;
 
+// using rand() wasn't cutting it
+int random(int n) {
+  std::mt19937_64 r(std::chrono::duration_cast<std::chrono::nanoseconds>
+                    (std::chrono::high_resolution_clock::now().time_since_epoch()).count());
+  return r() % n;
+}
+
+// so we can modulus negative numbers
 int mod(int x, int y) {
   if (x < 0) {
     while (x < 0) {
@@ -42,6 +51,7 @@ int fermat_primality_test(int n) {
   return fast_exponentiation(2, n - 1, n);
 }
 
+// creates 2d array of possible primes
 int** prime_sieve(int end) {
   int J = floor(end/30) + 1;
   array_size = J;
@@ -72,15 +82,15 @@ int** prime_sieve(int end) {
   return primes;
 }
 
-static int rc = 1;
-int rand_prime(int* primes[8]) {
-  srand(time(NULL) + rc++);
-  int i = rand() % array_size;
-  int j = rand() % 8;
+// random prime generator
+// makes sure to check if not zero, > min, and if its a real prime
+int rand_prime(int* primes[8], int min) {
+  int i = random(array_size);
+  int j = random(8);
   int k = primes[i][j];
 
-  if (k != 0 && k > 100 && fermat_primality_test(k) == 1) return k;
-  else return rand_prime(primes);
+  if (k != 0 && k > min && fermat_primality_test(k) == 1) return k;
+  else return rand_prime(primes, min);
 }
 
 int gcd(int a, int b) {
@@ -127,10 +137,10 @@ int rsa_dec(int n, int d, int C) {
 }
 
 int32_t main() {
-  int** primes = prime_sieve(MAX_PRIME);
+  int** primes = prime_sieve(MAX_PRIME); // calculate all the primes into a 2d array before hand
 
-  //int p = rand_prime(primes);
-  //int q = rand_prime(primes);
+  std::cout << "This is the test input!\n";
+  std::cout << "-------------------------\n\n";
 
   { // this is our first example
     int p = 181;
@@ -155,37 +165,55 @@ int32_t main() {
     std::cout << "m :: " << P << "\n\n";
   }
 
-  {
-    int p = rand_prime(primes);
-    int q = rand_prime(primes);
-    int n = p * q;
-    int phi = (p - 1) * (q - 1);
-    int e;
+  std::cout << "-------------------------\n\n";
 
-    { // check gcd(phi, e) == 1
-      int g = 0;
-      while (g != 1) {
-        e = rand_prime(primes);
-        g = gcd(e, phi);
-      }
+  while (true) {
+    int m;
+    std::cout << "This is RSA\n";
+    std::cout << "Please enter a positive integer value < 1000 to encrypt/decrypt.\n";
+    std::cin >> m;
+
+    if (m >= 1000) {
+      std::cout << "That number is too large... please try again.\n";
+      continue;
     }
 
-    int d = mod(extended_euclidean(e, phi), phi);
+    {
+      int p = rand_prime(primes, 100); // rand prime with min of 100
+      int q = rand_prime(primes, 100); // rand prime with min of 100
+      int n = p * q;
+      int phi = (p - 1) * (q - 1);
+      int e;
 
-    std::cout << "p :: " << p << "\n";
-    std::cout << "q :: " << q << "\n";
-    std::cout << "n :: " << n << "\n";
-    std::cout << "phi :: " << phi << "\n";
-    std::cout << "e :: " << e << "\n";
-    std::cout << "d :: " << d << "\n";
+      { // check gcd(phi, e) == 1
+        int g = 0;
+        while (g != 1) {
+          e = rand_prime(primes, 1); // rand prime with min of 1
+          g = gcd(e, phi);
+        }
+      }
 
-    int m = 100;
-    int C = rsa_enc(n, e, m);
-    int P = rsa_dec(n, d, C);
+      int d = mod(extended_euclidean(e, phi), phi);
 
-    std::cout << "C :: " << C << "\n";
-    std::cout << "m :: " << P << "\n";
+      std::cout << "p :: " << p << "\n";
+      std::cout << "q :: " << q << "\n";
+      std::cout << "n :: " << n << "\n";
+      std::cout << "phi :: " << phi << "\n";
+      std::cout << "e :: " << e << "\n";
+      std::cout << "d :: " << d << "\n";
 
+      int C = rsa_enc(n, e, m);
+      int P = rsa_dec(n, d, C);
+
+      std::cout << "C :: " << C << "\n";
+      std::cout << "m :: " << P << "\n\n";
+
+    }
+
+    char ans;
+    std::cout << "Would you like to encrypt/decrypt again? [y/N]\n";
+    std::cin >> ans;
+    if (ans == 'n' || ans == 'N') break;
   }
 
   delete [] primes;
