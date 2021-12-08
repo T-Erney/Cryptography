@@ -143,6 +143,7 @@ int32_t main() {
   std::cout << "-------------------------\n\n";
 
   { // this is our first example
+    int m = 100;
     int p = 181;
     int q = 101;
     int n = (p * q);
@@ -150,6 +151,7 @@ int32_t main() {
     int e = 19;
     int d = mod(extended_euclidean(e, phi), phi);
 
+    std::cout << "m :: " << m << "\n";
     std::cout << "p :: " << p << "\n";
     std::cout << "q :: " << q << "\n";
     std::cout << "n :: " << n << "\n";
@@ -157,7 +159,6 @@ int32_t main() {
     std::cout << "e :: " << e << "\n";
     std::cout << "d :: " << d << "\n";
 
-    int m = 100;
     int C = rsa_enc(n, e, m);
     int P = rsa_dec(n, d, C);
 
@@ -174,7 +175,7 @@ int32_t main() {
     std::cin >> m;
 
     if (m >= 1000) {
-      std::cout << "That number is too large... please try again.\n";
+      std::cout << "That number is too large... please try again.\n\n";
       continue;
     }
 
