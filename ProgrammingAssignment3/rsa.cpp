@@ -1,10 +1,17 @@
+/*
+ * Tristan Erney
+ * December 7th, 2021
+ * Intro to Cryptology
+ * Programming Assignment 3 - RSA
+ */
+
 #include <iostream>
 #include <stdint.h>
 #include <stdlib.h>
 #include <cmath>
 #include <ctime>
 
-#define MAX_PRIME 500
+#define MAX_PRIME 1000
 #define int int64_t
 static int array_size = 0;
 
@@ -17,6 +24,22 @@ int mod(int x, int y) {
   } else {
     return x % y;
   }
+}
+
+// so just a fast/fancy power function?
+int fast_exponentiation(int b, int p, int m) {
+  int a = 1;
+  if (p == 0)          return a;
+  else if (p % 2 == 0) a = mod(fast_exponentiation(b, p / 2, m) * fast_exponentiation(b, p / 2, m), m);
+  else                 a = mod(b * fast_exponentiation(b, (p - 1) / 2, m) * fast_exponentiation(b, (p - 1) / 2, m), m);
+  return a;
+}
+
+// realized I wasn't getting primes all the time
+// from the prime_sieve so I implemented this to
+// make sure I got primes and not "potential" primes
+int fermat_primality_test(int n) {
+  return fast_exponentiation(2, n - 1, n);
 }
 
 int** prime_sieve(int end) {
@@ -51,48 +74,56 @@ int** prime_sieve(int end) {
 
 static int rc = 1;
 int rand_prime(int* primes[8]) {
-  srand(time(NULL) * rc++);
+  srand(time(NULL) + rc++);
   int i = rand() % array_size;
   int j = rand() % 8;
   int k = primes[i][j];
 
-  if (k != 0) return k;
+  if (k != 0 && k > 100 && fermat_primality_test(k) == 1) return k;
   else return rand_prime(primes);
 }
 
-int eegcd(int a, int b, int* x, int* y) {
-  if (a == 0) {
-    *x = 0;
-    *y = 1;
-    return b;
+int gcd(int a, int b) {
+  int r = 0;
+  while (a > 1) {
+    r = b - a * floor((float)(b / a));
+    b = a;
+    a = r;
+  }
+  return r;
+}
+
+int extended_euclidean(int a, int b) {
+  int s = 0, s1 = 1;
+  int r = b, r1 = a;
+  int t = 1, t1 = 0;
+
+  while (r != 0) {
+    int q = r1 / r;
+    int p;
+
+    p = r;
+    r = r1 - q * p;
+    r1 = p;
+
+    p = s;
+    s = s1 - q * p;
+    s1 = p;
+
+    p = t;
+    t = t1 - q * p;
+    t1 = p;
   }
 
-  int x1, y1;
-  int gcd = eegcd(b % a, a, &x1, &y1);
-  *x = y1 - (b / a) * x1;
-  *y = x1;
-  return gcd;
+  return s1;
 }
 
-int power(int b, int e, int m) {
-  int p = b;
-  for (int i = 1; i < e; i += 1) p = mod(p * b, m);
-  return p;
+int rsa_enc(int n, int e, int m) {
+  return mod(fast_exponentiation(m, e, n), n);
 }
 
-int rsa_enc(int p, int q, int e) {
-  int n = p * q;
-  int phi = (p - 1) * (q - 1);
-
-  int x, y;
-  //int gcd = eegcd()
-
-  return 0;
-}
-
-int rsa_dec(int p, int q) {
-
-  return 0;
+int rsa_dec(int n, int d, int C) {
+  return mod(fast_exponentiation(C, d, n), n);
 }
 
 int32_t main() {
@@ -100,39 +131,62 @@ int32_t main() {
 
   //int p = rand_prime(primes);
   //int q = rand_prime(primes);
-  int p = 181;
-  int q = 101;
-  int n = (p * q);
-  int phi = (p - 1) * (q - 1);
-  int e;
 
-  { // check gcd(phi, e) == 1
-    int gcd = 0;
-    while (gcd != 1) {
-      e = rand_prime(primes);
-      int x, y;
-      gcd = eegcd(phi, e, &x, &y);
-    }
+  { // this is our first example
+    int p = 181;
+    int q = 101;
+    int n = (p * q);
+    int phi = (p - 1) * (q - 1);
+    int e = 19;
+    int d = mod(extended_euclidean(e, phi), phi);
+
+    std::cout << "p :: " << p << "\n";
+    std::cout << "q :: " << q << "\n";
+    std::cout << "n :: " << n << "\n";
+    std::cout << "phi :: " << phi << "\n";
+    std::cout << "e :: " << e << "\n";
+    std::cout << "d :: " << d << "\n";
+
+    int m = 100;
+    int C = rsa_enc(n, e, m);
+    int P = rsa_dec(n, d, C);
+
+    std::cout << "C :: " << C << "\n";
+    std::cout << "m :: " << P << "\n\n";
   }
 
-  e = 19;
+  {
+    int p = rand_prime(primes);
+    int q = rand_prime(primes);
+    int n = p * q;
+    int phi = (p - 1) * (q - 1);
+    int e;
 
-  int x, d;
-  int gcd = eegcd(phi, e, &x, &d);
-  d = mod(d, phi);
+    { // check gcd(phi, e) == 1
+      int g = 0;
+      while (g != 1) {
+        e = rand_prime(primes);
+        g = gcd(e, phi);
+      }
+    }
 
-  std::cout << "p :: " << p << "\n";
-  std::cout << "q :: " << q << "\n";
-  std::cout << "n :: " << n << "\n";
-  std::cout << "phi :: " << phi << "\n";
-  std::cout << "e :: " << e << "\n";
-  std::cout << "d :: " << d << "\n";
+    int d = mod(extended_euclidean(e, phi), phi);
 
-  int C = mod(power(100, e, n), n);
-  int P = mod(power(C, d, n), n);
+    std::cout << "p :: " << p << "\n";
+    std::cout << "q :: " << q << "\n";
+    std::cout << "n :: " << n << "\n";
+    std::cout << "phi :: " << phi << "\n";
+    std::cout << "e :: " << e << "\n";
+    std::cout << "d :: " << d << "\n";
 
-  std::cout << "C :: " << C << "\n";
-  std::cout << "m :: " << P << "\n";
+    int m = 100;
+    int C = rsa_enc(n, e, m);
+    int P = rsa_dec(n, d, C);
+
+    std::cout << "C :: " << C << "\n";
+    std::cout << "m :: " << P << "\n";
+
+  }
 
   delete [] primes;
   return 0;
